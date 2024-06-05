@@ -3,18 +3,23 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import reportWebVitals from './reportWebVitals';
-import { Application } from './commons/application';
 import { initialiseParser } from './features/parser/initParser';
-import { PrimeReactProvider } from 'primereact/api';
+import { addLocale, PrimeReactProvider } from 'primereact/api';
 import { Parser } from './features/parser/components/parser';
-import { AppProvider } from './commons/provider';
-import { Page } from './commons/components/page';
+import { initialiseClients } from './features/parser/clients/initClients';
+import { AppProvider } from './common/provider';
+import { Page } from './common/components/page';
+import { Application } from './common/application';
+import plLocale from 'primelocale/pl.json';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement,
 );
 
+addLocale('pl', plLocale.pl);
+
 const application = new Application();
+initialiseClients(application);
 initialiseParser(application);
 
 // this could be a switch if more features are there

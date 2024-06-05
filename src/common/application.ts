@@ -1,4 +1,4 @@
-import { makeObservable, observable } from "mobx";
+import { makeObservable, observable } from 'mobx';
 
 export class Application implements Common.IApplication {
   servicesFactories: Common.IDictionary<Common.ServiceFactory>;
@@ -16,11 +16,6 @@ export class Application implements Common.IApplication {
 
   registerFeature(feature: Common.IFeature) {
     this.features = [...this.features, feature];
-  }
-
-  registerInstance<T>(key: string, value: T) {
-    this.services[key] = value;
-    return this;
   }
 
   registerService<TService>(

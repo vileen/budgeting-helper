@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { IModel } from './types';
-import { useApplication } from '../../commons/provider';
+import { useApplication } from '../../common/provider';
 import { PARSER_MODEL } from './constants';
 
 export const useModel = (): IModel => {

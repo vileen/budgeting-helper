@@ -3,6 +3,7 @@ import { useCSVReader } from 'react-papaparse';
 import { Button } from 'primereact/button';
 import { useModel } from '../useModel';
 import { IUploadResponse } from '../types';
+import { observer } from 'mobx-react';
 
 const styles = {
   csvReader: {
@@ -30,9 +31,15 @@ const styles = {
   } as CSSProperties,
 };
 
-export const Uploader = () => {
+export const Uploader = observer(() => {
   const { CSVReader } = useCSVReader();
   const model = useModel();
+
+  if (
+    !model.datesRange.length ||
+    (model.datesRange && (!model.datesRange[0] || !model.datesRange[1]))
+  )
+    return <p>Please set dates range first</p>;
 
   return (
     <CSVReader
@@ -63,4 +70,4 @@ export const Uploader = () => {
       )}
     </CSVReader>
   );
-};
+});
