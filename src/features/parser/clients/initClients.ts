@@ -5,7 +5,7 @@ import { ExchangeRatesApiClient } from './exchangeRatesApiClient';
 export const initialiseClients = (application: Common.IApplication) => {
   const exchangeRatesAxiosClient = createHttpClient({
     // could be moved to config
-    baseURL: 'https://api.freecurrencyapi.com/v1/historical',
+    baseURL: 'https://www.alphavantage.co',
   });
 
   application.registerService(

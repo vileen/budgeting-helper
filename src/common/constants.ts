@@ -10,3 +10,5 @@ export enum StatusCodes {
   TooManyRequests429 = 429,
   ServerError500 = 500,
 }
+
+export const DATE_FORMAT = 'yyyy-MM-dd';

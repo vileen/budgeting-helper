@@ -1,30 +1,54 @@
 import { IExchangeRatesApiClient, IModel, IUploadResponse } from './types';
-import { action, computed, makeObservable, observable } from 'mobx';
+import {
+  action,
+  computed,
+  makeObservable,
+  observable,
+  runInAction,
+} from 'mobx';
 import { formatDate, isDate, isWithinInterval } from 'date-fns';
+import { getClosestDate } from './utils';
+import { DATE_FORMAT } from '../../common/constants';
 
+// TODO move local storage handling to a separate service
 export class Model implements IModel {
   exchangeRatesApiClient: IExchangeRatesApiClient;
   datesRange: (Date | null)[] = [];
-  originalData: Record<string, string>[] = [];
-  headers: string[] = [];
+  originalData: Record<string, string>[] =
+    JSON.parse(localStorage.getItem('originalData')!) || [];
+  columns: string[] = JSON.parse(localStorage.getItem('columns')!) || [];
+  columnsToHide: string[] =
+    JSON.parse(localStorage.getItem('columnsToHide')!) || [];
+  exchangeRates: Record<string, Record<string, string>> =
+    JSON.parse(localStorage.getItem('exchangeRates')!) || {};
   errors: string[] = [];
-  txDateFieldName: string | null = null;
+  dateFieldName: string | null = localStorage.getItem('dateFieldName') || null;
+  amountFieldName: string | null =
+    localStorage.getItem('amountFieldName') || null;
 
   constructor(exchangeRatesApiClient: IExchangeRatesApiClient) {
     this.exchangeRatesApiClient = exchangeRatesApiClient;
 
     makeObservable(this, {
       datesRange: observable,
-      originalData: observable,
+      originalData: observable.ref,
       uniqueDates: computed,
       filteredData: computed,
-      headers: observable,
-      txDateFieldName: observable,
-      downloadDocument: action.bound,
+      columns: observable,
+      dateFieldName: observable,
+      amountFieldName: observable,
+      columnsToHide: observable,
       uploadFile: action.bound,
       downloadExchangeRates: action.bound,
       setDatesRange: action.bound,
+      setFieldNameValue: action.bound,
+      setColumnsToHide: action.bound,
+      updateFieldValue: action.bound,
     });
+  }
+
+  get filteredColumns() {
+    return this.columns.filter(column => !this.columnsToHide.includes(column));
   }
 
   get filteredData() {
@@ -35,21 +59,55 @@ export class Model implements IModel {
     )
       return [];
 
-    return this.originalData.filter(row => {
-      const dateValue =
-        this.txDateFieldName && (row[this.txDateFieldName] as string);
-      const formattedDate = dateValue
-        ? new Date(formatDate(dateValue, 'yyyy-MM-dd'))
-        : null;
+    return this.originalData
+      .filter(row => {
+        const dateValue = this.dateFieldName && row[this.dateFieldName];
+        const formattedDate = dateValue
+          ? new Date(formatDate(dateValue, 'yyyy-MM-dd'))
+          : null;
 
-      return (
-        formattedDate &&
-        isWithinInterval(formattedDate, {
-          start: this.datesRange[0] as Date,
-          end: this.datesRange[1] as Date,
-        })
-      );
-    });
+        return (
+          formattedDate &&
+          isWithinInterval(formattedDate, {
+            start: this.datesRange[0] as Date,
+            end: this.datesRange[1] as Date,
+          })
+        );
+      })
+      .map(row => {
+        const closestDate = getClosestDate(row[this.dateFieldName!]);
+        const exchangeRate =
+          this.exchangeRates[formatDate(closestDate, DATE_FORMAT)]['4. close'];
+        const afterConversion = exchangeRate
+          ? parseFloat(row[this.amountFieldName!]) * parseFloat(exchangeRate)
+          : null;
+
+        return {
+          ...row,
+          'Exchange rate': exchangeRate,
+          'After conversion': afterConversion?.toFixed(2).toString() || '',
+        };
+      });
+  }
+
+  // shortcut, this should include templates, mapping columns etc.
+  // or actually edit original table?
+  get outputData() {
+    return this.filteredData.reduce<Record<string, string>[]>((aggr, row) => {
+      const newRow = {
+        // @ts-ignore
+        Date: formatDate(row[this.dateFieldName!], DATE_FORMAT),
+        // @ts-ignore
+        Payee: row['Payee'],
+        // @ts-ignore
+        Memo: row['Transaction Description'],
+        // @ts-ignore
+        Amount: row['After conversion'],
+      };
+      aggr.push(newRow);
+
+      return aggr;
+    }, []);
   }
 
   get uniqueDates() {
@@ -60,7 +118,7 @@ export class Model implements IModel {
 
       const hasDateValue = dateValue && dateValue[1];
       const formattedDate = hasDateValue
-        ? formatDate(dateValue[1], 'yyyy-MM-dd')
+        ? formatDate(dateValue[1], DATE_FORMAT)
         : null;
 
       if (formattedDate && aggr.indexOf(formattedDate) === -1) {
@@ -70,20 +128,18 @@ export class Model implements IModel {
     }, []);
   }
 
-  downloadDocument() {
-    console.log('downloadDocument');
-  }
-
   uploadFile(response: IUploadResponse) {
     const { data, errors } = response;
-    this.setHeaders(data);
+    this.setColumns(data);
     this.setData(data);
     this.setErrors(errors);
-    // this.downloadExchangeRates();
   }
 
-  setHeaders(originalData: string[][]) {
-    this.headers = originalData[0];
+  setColumns(originalData: string[][]) {
+    this.columns = originalData[0];
+    this.columns.push(...['Payee', 'Exchange rate', 'After conversion']);
+
+    localStorage.setItem('columns', JSON.stringify(this.columns));
   }
 
   setErrors(errors: string[]) {
@@ -101,24 +157,44 @@ export class Model implements IModel {
       .slice(1, originalData.length - 1)
       .map(row => {
         return row.reduce<Record<string, string>>((aggr, cell, index) => {
-          aggr[this.headers[index]] = cell;
-
-          if (!this.txDateFieldName && isDate(new Date(cell))) {
-            this.txDateFieldName = this.headers[index];
-          }
+          aggr[this.columns[index]] = cell;
 
           return aggr;
         }, {});
       });
+
+    localStorage.setItem('originalData', JSON.stringify(this.originalData));
+  }
+
+  setFieldNameValue(fieldName: string, value: string) {
+    const fieldNameToSet =
+      fieldName === 'dateFieldName' ? 'dateFieldName' : 'amountFieldName';
+    this[fieldNameToSet] = value;
+    localStorage.setItem(fieldName, value);
+  }
+
+  setColumnsToHide(columns: string[]) {
+    this.columnsToHide = columns;
+    localStorage.setItem('columnsToHide', JSON.stringify(columns));
   }
 
   async downloadExchangeRates() {
-    const promises = this.uniqueDates.map(date =>
-      this.exchangeRatesApiClient.getExchangeRatesForDate(date),
-    );
-    // this.headers.push(...['Exchange rate', 'After conversion']);
+    if (!this.dateFieldName || !this.amountFieldName) {
+      throw new Error('Date and amount fields are required');
+    }
 
-    const result = await Promise.all(promises);
-    console.log(result);
+    const result = await this.exchangeRatesApiClient.getExchangeRatesForEuro();
+    localStorage.setItem('exchangeRates', JSON.stringify(result));
+
+    runInAction(() => {
+      this.exchangeRates = result;
+    });
+  }
+
+  updateFieldValue(rowIndex: number, fieldName: string, fieldValue: string) {
+    // @ts-ignore
+    this.originalData[rowIndex][fieldName] = fieldValue;
+    // @ts-ignore
+    this.filteredData[rowIndex][fieldName] = fieldValue;
   }
 }

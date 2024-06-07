@@ -9,26 +9,31 @@ export interface ICell {
 
 export interface IModel {
   datesRange: (Date | null)[];
-  headers: string[];
+  dateFieldName: string | null;
+  amountFieldName: string | null;
+  columns: string[];
+  filteredColumns: string[];
+  columnsToHide: string[];
   filteredData: ICell[];
-  uploadFile: (results: IUploadResponse) => void;
-  downloadDocument: () => void;
-  setDatesRange: (dates?: (Date | null)[] | null) => void;
-  downloadExchangeRates: () => Promise<void>;
+  outputData: ICell[];
+  uploadFile(results: IUploadResponse): void;
+  setDatesRange(dates?: (Date | null)[] | null): void;
+  setFieldNameValue(fieldName: string, value: string): void;
+  setColumnsToHide(columns: string[]): void;
+  downloadExchangeRates(): Promise<void>;
+  updateFieldValue(
+    rowIndex: number,
+    fieldName: string,
+    fieldValue: string,
+  ): void;
 }
 
 export interface IExchangeRatesResponse {
-  conversion_amounts: {
-    [key: string]: number;
-  };
-  base_code: string;
-  year: number;
-  month: number;
-  day: number;
+  [key: string]: Record<string, Record<string, string>>;
 }
 
 export interface IExchangeRatesApiClient {
-  getExchangeRatesForDate: (date: string) => Promise<{
-    [key: string]: number;
-  }>;
+  getExchangeRatesForEuro: () => Promise<
+    Record<string, Record<string, string>>
+  >;
 }

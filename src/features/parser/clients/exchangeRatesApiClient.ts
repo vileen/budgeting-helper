@@ -9,11 +9,11 @@ export class ExchangeRatesApiClient implements IExchangeRatesApiClient {
     this.httpClient = httpClient;
   }
 
-  async getExchangeRatesForDate(date: string) {
+  async getExchangeRatesForEuro() {
     const response = await this.httpClient.get<IExchangeRatesResponse>(
-      `?access_key=${process.env.REACT_APP_EXCHANGE_RATES_API_KEY}&date=${date}&source=EUR&currencies=PLN`,
+      `/query?function=FX_DAILY&from_symbol=EUR&to_symbol=PLN&apikey=${process.env.REACT_APP_EXCHANGE_RATES_API_KEY}`,
     );
 
-    return handleAxiosResponse(response).conversion_amounts;
+    return handleAxiosResponse(response)['Time Series FX (Daily)'];
   }
 }
