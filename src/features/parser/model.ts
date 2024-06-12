@@ -10,10 +10,17 @@ import { formatDate, isDate, isWithinInterval } from 'date-fns';
 import { getClosestDate } from './utils';
 import { DATE_FORMAT } from '../../common/constants';
 
+const getSavedDatesRange = () => {
+  const datesRange = JSON.parse(localStorage.getItem('datesRange')!);
+  if (!datesRange || !datesRange[0] || !datesRange[1]) return [];
+
+  return [new Date(datesRange[0]), new Date(datesRange[1])] || [];
+};
+
 // TODO move local storage handling to a separate service
 export class Model implements IModel {
   exchangeRatesApiClient: IExchangeRatesApiClient;
-  datesRange: (Date | null)[] = [];
+  datesRange: (Date | null)[] = getSavedDatesRange();
   originalData: Record<string, string>[] =
     JSON.parse(localStorage.getItem('originalData')!) || [];
   columns: string[] = JSON.parse(localStorage.getItem('columns')!) || [];
@@ -66,6 +73,7 @@ export class Model implements IModel {
           ? new Date(formatDate(dateValue, 'yyyy-MM-dd'))
           : null;
 
+        console.log(formattedDate, this.datesRange[0], this.datesRange[1]);
         return (
           formattedDate &&
           isWithinInterval(formattedDate, {
@@ -148,7 +156,15 @@ export class Model implements IModel {
 
   setDatesRange(dates?: (Date | null)[] | null) {
     if (dates?.length) {
+      if (dates[1] !== null) {
+        dates[1].setDate(dates[1].getDate() + 1);
+        dates[1].setHours(23);
+        dates[1].setMinutes(59);
+        dates[1].setSeconds(59);
+      }
       this.datesRange = dates;
+
+      localStorage.setItem('datesRange', JSON.stringify(dates));
     }
   }
 
