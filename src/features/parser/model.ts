@@ -18,6 +18,7 @@ const getSavedDatesRange = () => {
 };
 
 // TODO move local storage handling to a separate service
+// TODO expected value with additional tx to match it?
 export class Model implements IModel {
   exchangeRatesApiClient: IExchangeRatesApiClient;
   datesRange: (Date | null)[] = getSavedDatesRange();
@@ -45,6 +46,7 @@ export class Model implements IModel {
       dateFieldName: observable,
       amountFieldName: observable,
       columnsToHide: observable,
+      exchangeRates: observable,
       uploadFile: action.bound,
       downloadExchangeRates: action.bound,
       setDatesRange: action.bound,
@@ -73,7 +75,6 @@ export class Model implements IModel {
           ? new Date(formatDate(dateValue, 'yyyy-MM-dd'))
           : null;
 
-        console.log(formattedDate, this.datesRange[0], this.datesRange[1]);
         return (
           formattedDate &&
           isWithinInterval(formattedDate, {
@@ -157,7 +158,6 @@ export class Model implements IModel {
   setDatesRange(dates?: (Date | null)[] | null) {
     if (dates?.length) {
       if (dates[1] !== null) {
-        dates[1].setDate(dates[1].getDate() + 1);
         dates[1].setHours(23);
         dates[1].setMinutes(59);
         dates[1].setSeconds(59);
@@ -195,10 +195,6 @@ export class Model implements IModel {
   }
 
   async downloadExchangeRates() {
-    if (!this.dateFieldName || !this.amountFieldName) {
-      throw new Error('Date and amount fields are required');
-    }
-
     const result = await this.exchangeRatesApiClient.getExchangeRatesForEuro();
     localStorage.setItem('exchangeRates', JSON.stringify(result));
 

@@ -16,6 +16,7 @@ export interface IModel {
   columnsToHide: string[];
   filteredData: ICell[];
   outputData: ICell[];
+  exchangeRates: Record<string, Record<string, string>>;
   uploadFile(results: IUploadResponse): void;
   setDatesRange(dates?: (Date | null)[] | null): void;
   setFieldNameValue(fieldName: string, value: string): void;
