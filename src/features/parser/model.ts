@@ -84,9 +84,18 @@ export class Model implements IModel {
         );
       })
       .map(row => {
-        const closestDate = getClosestDate(row[this.dateFieldName!]);
-        const exchangeRate =
-          this.exchangeRates[formatDate(closestDate, DATE_FORMAT)]['4. close'];
+        const closestDate = getClosestDate(
+          row[this.dateFieldName!],
+          this.exchangeRates,
+        );
+        const exchangeRateDay =
+          this.exchangeRates[formatDate(closestDate, DATE_FORMAT)];
+        if (!exchangeRateDay) {
+          console.log('No exchange rate for', closestDate);
+          return row;
+        }
+
+        const exchangeRate = exchangeRateDay['4. close'];
         const afterConversion = exchangeRate
           ? parseFloat(row[this.amountFieldName!]) * parseFloat(exchangeRate)
           : null;
