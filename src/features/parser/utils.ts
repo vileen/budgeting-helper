@@ -25,6 +25,7 @@ export const getClosestDate = (
   return dateObj;
 };
 
+// consider sorting in case api messes up
 export const getFirstKey = (obj: Record<string, Record<string, string>>) => {
   const keys = Object.keys(obj);
   return keys[0];
