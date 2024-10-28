@@ -3,26 +3,32 @@
 import { formatDate } from 'date-fns';
 import { DATE_FORMAT } from '../../common/constants';
 
+const lookForClosestDate = (
+  date: string,
+  exchangeRates: Record<string, Record<string, string>>,
+): Date => {
+  const dateObj = new Date(date);
+
+  if (exchangeRates[formatDate(dateObj, DATE_FORMAT)]) {
+    return dateObj;
+  } else {
+    console.log(
+      'no data for',
+      formatDate(dateObj, DATE_FORMAT),
+      'trying previous day',
+    );
+    return lookForClosestDate(
+      formatDate(dateObj.setDate(dateObj.getDate() - 1), DATE_FORMAT),
+      exchangeRates,
+    );
+  }
+};
+
 export const getClosestDate = (
   date: string,
   exchangeRates: Record<string, Record<string, string>>,
 ) => {
-  const dateObj = new Date(date);
-
-  // Friday
-  if (dateObj.getDay() === 5) {
-    dateObj.setDate(dateObj.getDate() - 1);
-    // Saturday
-  } else if (dateObj.getDay() === 6) {
-    dateObj.setDate(dateObj.getDate() - 2);
-  }
-
-  // occasionally api doesn't return data for sundays
-  if (!exchangeRates[formatDate(dateObj, DATE_FORMAT)]) {
-    dateObj.setDate(dateObj.getDate() - 3);
-  }
-
-  return dateObj;
+  return lookForClosestDate(date, exchangeRates);
 };
 
 // consider sorting in case api messes up
